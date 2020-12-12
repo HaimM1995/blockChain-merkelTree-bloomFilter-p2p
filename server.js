@@ -14,9 +14,9 @@ const {
 const {
     Blockchain,
     Block,
-    Transaction
+    Transaction,
+    PendingTransaction,
 } = require('./BlockChain.js')
-
 const sockets = {}
 const fs = require('fs');
 
@@ -34,7 +34,11 @@ let powerCoupleCoin = new Blockchain()
 
 const transactionPool = readTransactionsFromMempool()
 log(transactionPool)
+
 powerCoupleCoin.loadTransactionsIntoBlocks(transactionPool)
+
+const totalSum = powerCoupleCoin.getTotalBalanceOBlockChain()
+log(`The total amount of coins in BlockChain: ${totalSum}` )
 
 //connect to peers
 topology(myIp, peerIps).on('connection', (socket, peerIp) => {
@@ -44,25 +48,24 @@ topology(myIp, peerIps).on('connection', (socket, peerIp) => {
    
     sockets[peerPort] = socket
     stdin.on('data', data => { //on user input
-        const message = data.toString().trim()
+        let message = data.toString().trim()
         if (message === 'exit') { //on exit
             log('Bye bye')
             exit(0)
         }
-
-        const receiverPeer = extractReceiverPeer(message)
-        if (sockets[receiverPeer]) { //message to specific peer
-
-        //     if (peerPort === receiverPeer) { //write only once
-        //         sockets[receiverPeer].write(formatMessage(extractMessageToSpecificPeer(message)))
-        //     }
-        // } else { //broadcast message to everyone
-        //     socket.write(formatMessage(message))
-         }
     })
 
     //print data when received
-    socket.on('data', data => log(data.toString('utf8')))
+    socket.on('data', data => {
+        let message = data.toString('utf8')
+        message = extractMessageToSpecificPeer(message)
+        log(message)
+        if (powerCoupleCoin.hasTransactionInBlockChain(PendingTransaction[message].toString())) { //message to specific peer
+            socket.write(`transaction no: ${message}, exist in blockchain`)
+        } else {
+            socket.write(`transaction no: ${message}, doesn't exist in blockchain`)
+        }
+    })
 })
 
 function readTransactionsFromMempool() {
@@ -105,5 +108,9 @@ function extractReceiverPeer(message) {
 //'4000>hello' -> 'hello'
 function extractMessageToSpecificPeer(message) {
     return message.slice(5, message.length);
+}
+
+function readTransactionsFromMempoolMock() {
+    return JSON.parse(fs.readFileSync('transactionPool.json', 'utf8'));
 }
 

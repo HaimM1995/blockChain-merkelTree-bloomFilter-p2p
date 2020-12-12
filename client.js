@@ -20,7 +20,7 @@ const myKey = ec.keyFromPrivate('L1Kh1Y4jeytAFd9Gc3C7b3hHKVTLpUVpZamPGQmi1NkdvGL
 
 const myWalletAddress = myKey.getPublic('hex')
 log('---------------------')
-log('Welcome client1!')
+log('Welcome client!')
 log('me - ', me)
 log('peers - ', peers)
 log('connecting to peers...')
@@ -34,22 +34,22 @@ topology(myIp, peerIps).on('connection', (socket, peerIp) => {
     log('connected to peer - ', peerPort)
 
     lunchMenu()
-    sockets[peerPort] = socket
+   sockets[peerPort] = socket
     stdin.on('data', data => { //on user input
-        const message = data.toString().trim()
+        let message = data.toString().trim()
         if (message === 'exit') { //on exit
             log('Bye bye')
             exit(0)
         }
 
-        // const receiverPeer = extractReceiverPeer(message)
-        // if (sockets[receiverPeer]) { //message to specific peer
-        //     if (peerPort === receiverPeer) { //write only once
-        //         sockets[receiverPeer].write(formatMessage(extractMessageToSpecificPeer(message)))
-        //     }
-        // } else { //broadcast message to everyone
-        //     socket.write(formatMessage(message))
-        // }
+        const receiverPeer = extractReceiverPeer(message)
+        if (sockets[receiverPeer]) { //message to specific peer
+            if (peerPort === receiverPeer) { //write only once
+                sockets[receiverPeer].write(formatMessage(extractMessageToSpecificPeer(message)))
+            }
+        } else { //broadcast message to everyone
+            socket.write(formatMessage(message))
+        }
     })
 
     //print data when received
@@ -97,5 +97,5 @@ function extractMessageToSpecificPeer(message) {
 
 function lunchMenu(){
     log('lunch menu: \n')
-    log('to transfer coins do: [`port number`] [`num of coins`]')
+    log('check existence: pick number of transaction from 0-17: ')
 }
