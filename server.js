@@ -11,7 +11,15 @@ const {
     me,
     peers
 } = extractPeersAndMyPort()
+const {
+    Blockchain,
+    Block,
+    Transaction
+} = require('./BlockChain.js')
+
 const sockets = {}
+const fs = require('fs');
+
 
 log('---------------------')
 log('Welcome server!')
@@ -22,10 +30,17 @@ log('connecting to peers...')
 const myIp = toLocalIp(me)
 const peerIps = getPeerIps(peers)
 
+let powerCoupleCoin = new Blockchain()
+
+const transactionPool = readTransactionsFromMempool()
+log(transactionPool)
+powerCoupleCoin.loadTransactionsIntoBlocks(transactionPool)
+
 //connect to peers
 topology(myIp, peerIps).on('connection', (socket, peerIp) => {
     const peerPort = extractPortFromIp(peerIp)
     log('connected to peer - ', peerPort)
+    
    
     sockets[peerPort] = socket
     stdin.on('data', data => { //on user input
@@ -43,13 +58,16 @@ topology(myIp, peerIps).on('connection', (socket, peerIp) => {
         //     }
         // } else { //broadcast message to everyone
         //     socket.write(formatMessage(message))
-        // }
+         }
     })
 
     //print data when received
     socket.on('data', data => log(data.toString('utf8')))
 })
 
+function readTransactionsFromMempool() {
+    return JSON.parse(fs.readFileSync('transactionPool.json', 'utf8'));
+}
 
 //extract ports from process arguments, {me: first_port, peers: rest... }
 function extractPeersAndMyPort() {
