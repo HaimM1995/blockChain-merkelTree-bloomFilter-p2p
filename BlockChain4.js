@@ -1,6 +1,7 @@
 const SHA256 = require('crypto-js/sha256')
 const EC = require('elliptic').ec
 const ec = new EC('secp256k1')
+const { MerkleTree } = require('merkletreejs')
 
 class Transaction {
     constructor(fromAddress, toAddress, amount) {
@@ -9,6 +10,7 @@ class Transaction {
         this.amount = amount
         this.timestamp = Date.now()
     }
+
     calculateHash() {
         return SHA256(this.fromAddress + this.toAddress + this.amount + this.timestamp).toString()
     }
@@ -29,11 +31,10 @@ class Transaction {
         }
         const publicKey = ec.keyFromPublic(this.fromAddress, 'hex')
         return publicKey.verify(this.calculateHash(), this.signature)
-
     }
-
-
 }
+
+
 class Block {
     constructor(timestamp, transactions, previousHash = '') {
         this.previousHash = previousHash
@@ -41,6 +42,9 @@ class Block {
         this.transactions = transactions
         this.hash = this.calculateHash()
         this.nonce = 0
+
+        const leaves = transactions.map(x => SHA256(x))
+        this.tree = new MerkleTree(leaves, SHA256)
     }
 
     calculateHash() {
@@ -52,20 +56,22 @@ class Block {
             this.nonce++
             this.hash = this.calculateHash()
         }
+
         console.log('Block mined' + this.hash);
     }
+
     hasValidTransactions() {
         for (const tx of this.transactions) {
             if (!tx.isValid()) {
                 return false
             }
-
         }
+
         return true
-
     }
-
 }
+
+
 class Blockchain {
     constructor() {
         this.chain = [this.createGenesisBlock()]
@@ -75,18 +81,12 @@ class Blockchain {
     }
 
     createGenesisBlock() {
-        return new Block('01/01/2009', 'Genesis block', 0)
+         return new Block(Date.parse('2017-01-01'), [], '0');
     }
+
     getLatestBlock() {
         return this.chain[this.chain.length - 1]
     }
-
-    /*addBlock(newBlock) {
-        newBlock.previousHash = this.getLatestBlock().hash
-        newBlock.hash = newBlock.calculateHash()
-        newBlock.mineBlock(this.difficulty)
-        this.chain.push(newBlock)
-    }*/
 
     miningPendingTransaction(miningRewardAddress) {
         const rewardTx = new Transaction(null, miningRewardAddress, this.miningReward)
@@ -99,11 +99,7 @@ class Blockchain {
         this.chain.push(block)
         this.pendingTransaction = []
     }
-    /*
-    createTransaction(transaction) {
-        this.pendingTransaction.push(transaction)
-    }
-    */
+    
     addTransaction(transaction) {
         if (!transaction.fromAddress || !transaction.toAddress) {
             throw new Error('Transaction must include from and to address')
@@ -113,10 +109,6 @@ class Blockchain {
         }
         this.pendingTransaction.push(transaction)
     }
-
-
-
-
 
     getBalanceOfAddress(address) {
         let balance = 0
@@ -128,18 +120,11 @@ class Blockchain {
                 if (trans.toAddress === address) {
                     balance += trans.amount
                 }
-
             }
-
         }
 
         return balance
-
     }
-
-
-
-
 
     isChainValidate() {
         for (let i = 1; i < this.chain.length; i++) {
@@ -161,6 +146,7 @@ class Blockchain {
         return true
     }
 }
+
 module.exports.Blockchain = Blockchain
 module.exports.Block = Block
 module.exports.Transaction = Transaction
