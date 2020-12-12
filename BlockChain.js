@@ -2,7 +2,12 @@ const SHA256 = require('crypto-js/sha256')
 const EC = require('elliptic').ec
 const ec = new EC('secp256k1')
 const { MerkleTree } = require('merkletreejs')
+const {
+    PartitionedBloomFilter
+} = require('bloom-filters')
 
+
+const errorRate = 0.04 // 4 % error rate
 const myKey1 = ec.keyFromPrivate('04411cc35f4d3040cc864778dbafea18cfb7edee03d2eef2f4c0029e7d18df5798f7d0c0313fb8758a7a2950a2c2784c4e32e378dc3e0a164d7fde0e564e0537ad')
 const myKey2 = ec.keyFromPrivate('04a60ef1727cb3d41402b8e7d7b5577144dbe0b989dea7abc148255ee370f34dc2c4bcecc38bed7b9d8eed3aa070caa5d7f3961c6b3bbafbf2f4b54ca4e95f6438')
 
@@ -41,6 +46,10 @@ class Transaction {
         const publicKey = ec.keyFromPublic(this.fromAddress, 'hex')
         return publicKey.verify(this.calculateHash(), this.signature)
     }
+
+    toString(){
+        return SHA256(this.fromAddress + this.toAddress + this.amount + this.timestamp + this.signature).toString()
+    }
 }
 
 
@@ -52,8 +61,28 @@ class Block {
         this.hash = this.calculateHash()
         this.nonce = 0
 
+        // Merkle tree
         const leaves = transactions.map(x => SHA256(x))
         this.tree = new MerkleTree(leaves, SHA256)
+
+        // convenient method to initialize the filter
+        // const numberOfElements = 5;
+        // const falsePositiveRate = 0.01;
+        // this.filter = BloomFilter.create(numberOfElements, falsePositiveRate);
+        
+        //Create a PartitionedBloomFilter optimal for a collections of items and a desired error rate
+        this.filter = new PartitionedBloomFilter(120,5,0.5)
+        console.log("*********************************************************************************")
+        console.log(this.filter)
+        
+         for(let trx of this.transactions){
+             console.log(trx)
+             this.filter.add(trx.toString())
+             console.log(this.filter)
+         }
+        
+        // this.filter = PartitionedBloomFilter.from(transactions.map(x=>SHA256()), errorRate)
+        console.log(this.filter)
     }
 
     calculateHash() {
@@ -66,7 +95,7 @@ class Block {
             this.hash = this.calculateHash()
         }
 
-        console.log('Block mined' + this.hash);
+        // console.log('Block mined' + this.hash);
     }
 
     hasValidTransactions() {
@@ -78,6 +107,10 @@ class Block {
 
         return true
     }
+
+    hasTransactionInBlock(transaction){
+        return this.filter.has(transaction)
+    }
 }
 
 
@@ -86,7 +119,7 @@ class Blockchain {
         this.chain = [this.createGenesisBlock()]
         this.difficulty = 2
         this.pendingTransaction = []
-        this.miningReward = 90
+        this.miningReward = 100
     }
 
     createGenesisBlock() {
@@ -100,24 +133,31 @@ class Blockchain {
     loadTransactionsIntoBlocks(transactionPool){
         let counter = 0;
         for(const element of transactionPool) {
-            counter += 1;
-            console.log(element.fromAddress)
+            // console.log(element.fromAddress)
             let newTransaction = new Transaction(wallets[element.fromAddress].public, wallets[element.toAddress].public, element.amount)
             newTransaction.signTransaction(wallets[element.fromAddress].private)
             this.addTransaction(newTransaction)
+            counter += 1;
 
-            if(counter % 4 == 0)
+            if(counter % 4 === 0){
                 this.miningPendingTransaction(miningRewardAddress)
+            }
         }
+        console.log(this.hasTransactionInBlockChain(this.chain[1].transactions[3].toString()))
+        // this.pendingTransaction[1].toAddress = 13421
+        console.log(this.hasTransactionInBlockChain(this.pendingTransaction[0].toString()))
+        // console.log((this.pendingTransaction))
+        //console.log(this.printBlockChain())
     }
 
     miningPendingTransaction(miningRewardAddress) {
         const rewardTx = new Transaction(null, miningRewardAddress, this.miningReward)
         this.pendingTransaction.push(rewardTx)
 
+        //console.log(this.pendingTransaction.length)
         let block = new Block(Date.now(), this.pendingTransaction, this.getLatestBlock().hash)
         block.mineBlock(this.difficulty)
-        console.log('Block successfully mined')
+        //console.log('Block successfully mined')
 
         this.chain.push(block)
         this.pendingTransaction = []
@@ -167,6 +207,23 @@ class Blockchain {
 
         }
         return true
+    }
+
+    hasTransactionInBlockChain(transaction){
+        for(let block of this.chain) {
+            if(block.hasTransactionInBlock(transaction))
+                return true
+        }
+
+        return false
+    }
+
+    printBlockChain(){
+        for(let block of this.chain){
+            console.log("block: " + block.hash)
+            for(let tx of block.transactions)
+            console.log("   transaction: " + tx.signature)
+        }
     }
 }
 
