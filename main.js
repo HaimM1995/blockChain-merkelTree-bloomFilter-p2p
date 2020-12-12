@@ -2,7 +2,7 @@ const {
     Blockchain,
     Block,
     Transaction
-} = require('./Blockchain4.js')
+} = require('./BlockChain.js')
 
 const EC = require('elliptic').ec
 

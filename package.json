@@ -11,6 +11,7 @@
   "dependencies": {
     "crypto-js": "^4.0.0",
     "elliptic": "^6.5.3",
+    "fully-connected-topology": "^1.1.1",
     "merkletreejs": "^0.2.11"
   }
 }

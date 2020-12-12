@@ -1,0 +1,5 @@
+Your public key (also wallet address ,free sharble)
+ 1EStLqL5FM2hcqAVASbzYfDVvmpnrWcdqJ
+
+your private key(keep this secret! to sign transaction)
+ KyBGiPbyNT5uuEnDmeneLVEDhzPf2fWUPT9tdE3dUEu2NvfC9H2R
