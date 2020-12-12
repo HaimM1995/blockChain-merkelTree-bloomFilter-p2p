@@ -6,7 +6,7 @@ const {
     PartitionedBloomFilter
 } = require('bloom-filters')
 
-
+const pendingTransactionToExport=[]
 const errorRate = 0.04 // 4 % error rate
 const myKey1 = ec.keyFromPrivate('04411cc35f4d3040cc864778dbafea18cfb7edee03d2eef2f4c0029e7d18df5798f7d0c0313fb8758a7a2950a2c2784c4e32e378dc3e0a164d7fde0e564e0537ad')
 const myKey2 = ec.keyFromPrivate('04a60ef1727cb3d41402b8e7d7b5577144dbe0b989dea7abc148255ee370f34dc2c4bcecc38bed7b9d8eed3aa070caa5d7f3961c6b3bbafbf2f4b54ca4e95f6438')
@@ -64,25 +64,13 @@ class Block {
         // Merkle tree
         const leaves = transactions.map(x => SHA256(x))
         this.tree = new MerkleTree(leaves, SHA256)
-
-        // convenient method to initialize the filter
-        // const numberOfElements = 5;
-        // const falsePositiveRate = 0.01;
-        // this.filter = BloomFilter.create(numberOfElements, falsePositiveRate);
         
         //Create a PartitionedBloomFilter optimal for a collections of items and a desired error rate
         this.filter = new PartitionedBloomFilter(120,5,0.5)
-        console.log("*********************************************************************************")
-        console.log(this.filter)
-        
+
          for(let trx of this.transactions){
-             console.log(trx)
              this.filter.add(trx.toString())
-             console.log(this.filter)
          }
-        
-        // this.filter = PartitionedBloomFilter.from(transactions.map(x=>SHA256()), errorRate)
-        console.log(this.filter)
     }
 
     calculateHash() {
@@ -136,6 +124,7 @@ class Blockchain {
             // console.log(element.fromAddress)
             let newTransaction = new Transaction(wallets[element.fromAddress].public, wallets[element.toAddress].public, element.amount)
             newTransaction.signTransaction(wallets[element.fromAddress].private)
+            pendingTransactionToExport.push(newTransaction)
             this.addTransaction(newTransaction)
             counter += 1;
 
@@ -143,11 +132,6 @@ class Blockchain {
                 this.miningPendingTransaction(miningRewardAddress)
             }
         }
-        console.log(this.hasTransactionInBlockChain(this.chain[1].transactions[3].toString()))
-        // this.pendingTransaction[1].toAddress = 13421
-        console.log(this.hasTransactionInBlockChain(this.pendingTransaction[0].toString()))
-        // console.log((this.pendingTransaction))
-        //console.log(this.printBlockChain())
     }
 
     miningPendingTransaction(miningRewardAddress) {
@@ -173,10 +157,17 @@ class Blockchain {
         this.pendingTransaction.push(transaction)
     }
 
+    getTotalBalanceOBlockChain(){
+        let totalSum = 0
+        totalSum += this.getBalanceOfAddress(wallets[1].public)
+        totalSum += this.getBalanceOfAddress(wallets[2].public)
+        return totalSum + 3000 // 3000 is the amount of the initial wallets value
+    }
     getBalanceOfAddress(address) {
         let balance = 0
         for (const block of this.chain) {
             for (const trans of block.transactions) {
+                
                 if (trans.fromAddress === address) {
                     balance -= trans.amount
                 }
@@ -211,8 +202,9 @@ class Blockchain {
 
     hasTransactionInBlockChain(transaction){
         for(let block of this.chain) {
-            if(block.hasTransactionInBlock(transaction))
+            if(block.hasTransactionInBlock(transaction)){
                 return true
+            }
         }
 
         return false
@@ -230,3 +222,4 @@ class Blockchain {
 module.exports.Blockchain = Blockchain
 module.exports.Block = Block
 module.exports.Transaction = Transaction
+module.exports.PendingTransaction = pendingTransactionToExport
