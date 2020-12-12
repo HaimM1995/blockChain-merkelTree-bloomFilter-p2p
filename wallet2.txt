@@ -1,5 +1,5 @@
-Your public key (also wallet address ,free sharble)
- 1EStLqL5FM2hcqAVASbzYfDVvmpnrWcdqJ
+Your public key ,free shareable
+ 04a60ef1727cb3d41402b8e7d7b5577144dbe0b989dea7abc148255ee370f34dc2c4bcecc38bed7b9d8eed3aa070caa5d7f3961c6b3bbafbf2f4b54ca4e95f6438
 
-your private key(keep this secret! to sign transaction)
- KyBGiPbyNT5uuEnDmeneLVEDhzPf2fWUPT9tdE3dUEu2NvfC9H2R
+Your private key ,keep it secret
+ 6f8b375d60e6504e0a7f28ac7c14810bfc44bb517b3014a9dfe267a0b1d7b4a8

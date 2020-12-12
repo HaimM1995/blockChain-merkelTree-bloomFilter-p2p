@@ -3,6 +3,15 @@ const EC = require('elliptic').ec
 const ec = new EC('secp256k1')
 const { MerkleTree } = require('merkletreejs')
 
+const myKey1 = ec.keyFromPrivate('04411cc35f4d3040cc864778dbafea18cfb7edee03d2eef2f4c0029e7d18df5798f7d0c0313fb8758a7a2950a2c2784c4e32e378dc3e0a164d7fde0e564e0537ad')
+const myKey2 = ec.keyFromPrivate('04a60ef1727cb3d41402b8e7d7b5577144dbe0b989dea7abc148255ee370f34dc2c4bcecc38bed7b9d8eed3aa070caa5d7f3961c6b3bbafbf2f4b54ca4e95f6438')
+
+const myWalletAddress1 = myKey1.getPublic('hex')
+const myWalletAddress2 = myKey2.getPublic('hex')
+const miningRewardAddress = myWalletAddress2
+
+const wallets = [{},{private:myKey1, public: myWalletAddress1},{private:myKey2,public: myWalletAddress2}]
+
 class Transaction {
     constructor(fromAddress, toAddress, amount) {
         this.fromAddress = fromAddress
@@ -86,6 +95,20 @@ class Blockchain {
 
     getLatestBlock() {
         return this.chain[this.chain.length - 1]
+    }
+
+    loadTransactionsIntoBlocks(transactionPool){
+        let counter = 0;
+        for(const element of transactionPool) {
+            counter += 1;
+            console.log(element.fromAddress)
+            let newTransaction = new Transaction(wallets[element.fromAddress].public, wallets[element.toAddress].public, element.amount)
+            newTransaction.signTransaction(wallets[element.fromAddress].private)
+            this.addTransaction(newTransaction)
+
+            if(counter % 4 == 0)
+                this.miningPendingTransaction(miningRewardAddress)
+        }
     }
 
     miningPendingTransaction(miningRewardAddress) {
